@@ -1,0 +1,24 @@
+{
+  "name": "couples-spend-app",
+  "version": "1.0.0",
+  "description": "Simple spending tracking app for couples with offline-first PWA support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test tests/unit.test.js tests/integration.test.js"
+  },
+  "keywords": ["spending", "tracker", "pwa", "offline-first"],
+  "author": "James & Samantha",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.0",
+    "cookie-parser": "^1.4.6"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

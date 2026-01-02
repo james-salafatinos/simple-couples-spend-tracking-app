@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="description" content="Simple spending tracker for couples">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SpendTrack">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+  <title>SpendTrack</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+      <div class="login-container">
+        <h1>💰 SpendTrack</h1>
+        <p>James & Samantha's Spending Tracker</p>
+        <form id="login-form">
+          <input type="password" id="password-input" placeholder="Enter password" autocomplete="current-password" required>
+          <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+        <p id="login-error" class="error hidden"></p>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="hidden">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <h1>SpendTrack</h1>
+        </div>
+        <div class="header-right">
+          <span id="sync-status" class="sync-status" title="Sync status">●</span>
+          <button id="sync-btn" class="btn-icon" title="Sync now">↻</button>
+        </div>
+      </header>
+
+      <!-- Navigation -->
+      <nav class="bottom-nav">
+        <button class="nav-btn active" data-view="add">
+          <span class="nav-icon">+</span>
+          <span class="nav-label">Add</span>
+        </button>
+        <button class="nav-btn" data-view="transactions">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">List</span>
+        </button>
+        <button class="nav-btn" data-view="analytics">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Stats</span>
+        </button>
+        <button class="nav-btn" data-view="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
+
+      <!-- Views Container -->
+      <main class="views-container">
+        <!-- Add Transaction View -->
+        <div id="add-view" class="view active">
+          <div class="view-content">
+            <h2>Add Spending</h2>
+            <form id="add-form" class="add-form">
+              <div class="form-group">
+                <label for="tx-date">Date</label>
+                <input type="date" id="tx-date" required>
+              </div>
+              
+              <div class="form-group">
+                <label>Person</label>
+                <div class="person-toggle">
+                  <button type="button" class="person-btn active" data-person="James">James</button>
+                  <button type="button" class="person-btn" data-person="Samantha">Samantha</button>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Category</label>
+                <div id="category-tags" class="category-tags"></div>
+                <div class="new-category-row">
+                  <input type="text" id="new-category-input" placeholder="New category...">
+                  <button type="button" id="add-category-btn" class="btn btn-small">+</button>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="tx-vendor">Vendor</label>
+                  <input type="text" id="tx-vendor" placeholder="e.g., Starbucks">
+                </div>
+                <div class="form-group amount-group">
+                  <label for="tx-amount">Amount</label>
+                  <div class="amount-input-wrapper">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="tx-amount" min="1" step="1" placeholder="0" required>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="tx-memo">Memo (optional)</label>
+                <input type="text" id="tx-memo" placeholder="e.g., Coffee for both of us">
+              </div>
+              
+              <button type="submit" class="btn btn-primary btn-large">Add Spending</button>
+            </form>
+            
+            <div id="undo-container" class="undo-container hidden">
+              <span>Transaction added</span>
+              <button id="undo-btn" class="btn btn-small">Undo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions List View -->
+        <div id="transactions-view" class="view">
+          <div class="view-content">
+            <h2>Transactions</h2>
+            
+            <!-- Filters -->
+            <div class="filters-section">
+              <div class="filter-row">
+                <select id="filter-person" class="filter-select">
+                  <option value="all">All People</option>
+                  <option value="James">James</option>
+                  <option value="Samantha">Samantha</option>
+                </select>
+                <select id="filter-category" class="filter-select">
+                  <option value="all">All Categories</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <input type="date" id="filter-date-from" class="filter-date">
+                <span class="filter-separator">to</span>
+                <input type="date" id="filter-date-to" class="filter-date">
+              </div>
+              <div class="filter-row">
+                <input type="text" id="filter-search" class="filter-search" placeholder="Search vendor or memo...">
+              </div>
+            </div>
+            
+            <!-- Transaction List -->
+            <div id="transactions-list" class="transactions-list"></div>
+            
+            <div id="transactions-total" class="transactions-total"></div>
+          </div>
+        </div>
+
+        <!-- Analytics View -->
+        <div id="analytics-view" class="view">
+          <div class="view-content">
+            <h2>Analytics</h2>
+            
+            <div class="analytics-toggle">
+              <button class="analytics-btn active" data-filter="combined">Combined</button>
+              <button class="analytics-btn" data-filter="James">James</button>
+              <button class="analytics-btn" data-filter="Samantha">Samantha</button>
+            </div>
+            
+            <div class="analytics-cards">
+              <div class="analytics-card">
+                <h3>This Week</h3>
+                <p id="stat-week" class="stat-value">$0</p>
+              </div>
+              <div class="analytics-card">
+                <h3>This Month</h3>
+                <p id="stat-month" class="stat-value">$0</p>
+              </div>
+              <div class="analytics-card">
+                <h3>All Time</h3>
+                <p id="stat-total" class="stat-value">$0</p>
+              </div>
+            </div>
+            
+            <div class="chart-section">
+              <h3>Spending by Category</h3>
+              <div id="category-chart" class="category-chart"></div>
+            </div>
+            
+            <div class="chart-section">
+              <h3>Weekly Trend</h3>
+              <div id="weekly-chart" class="weekly-chart"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view">
+          <div class="view-content">
+            <h2>Settings</h2>
+            
+            <div class="settings-section">
+              <h3>Default User</h3>
+              <div class="person-toggle">
+                <button type="button" class="person-btn settings-user-btn" data-person="James">James</button>
+                <button type="button" class="person-btn settings-user-btn" data-person="Samantha">Samantha</button>
+              </div>
+            </div>
+            
+            <div class="settings-section">
+              <h3>Categories</h3>
+              <div id="categories-list" class="categories-list"></div>
+              <div class="new-category-row">
+                <input type="text" id="settings-new-category" placeholder="Add new category...">
+                <button type="button" id="settings-add-category" class="btn btn-small">Add</button>
+              </div>
+            </div>
+            
+            <div class="settings-section">
+              <h3>Recurring Transactions</h3>
+              <div id="recurring-list" class="recurring-list"></div>
+              <button type="button" id="add-recurring-btn" class="btn btn-secondary">+ Add Recurring</button>
+            </div>
+            
+            <div class="settings-section">
+              <h3>Export Data</h3>
+              <div class="export-buttons">
+                <button type="button" id="export-json-btn" class="btn btn-secondary">Export JSON</button>
+                <button type="button" id="export-csv-btn" class="btn btn-secondary">Export CSV</button>
+              </div>
+            </div>
+            
+            <div class="settings-section">
+              <button type="button" id="logout-btn" class="btn btn-danger">Logout</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Edit Transaction Modal -->
+    <div id="edit-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Transaction</h3>
+          <button class="modal-close" id="edit-modal-close">&times;</button>
+        </div>
+        <form id="edit-form">
+          <input type="hidden" id="edit-tx-id">
+          <div class="form-group">
+            <label for="edit-tx-date">Date</label>
+            <input type="date" id="edit-tx-date" required>
+          </div>
+          <div class="form-group">
+            <label>Person</label>
+            <div class="person-toggle">
+              <button type="button" class="person-btn edit-person-btn" data-person="James">James</button>
+              <button type="button" class="person-btn edit-person-btn" data-person="Samantha">Samantha</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-tx-category">Category</label>
+            <select id="edit-tx-category" required></select>
+          </div>
+          <div class="form-group">
+            <label for="edit-tx-vendor">Vendor</label>
+            <input type="text" id="edit-tx-vendor">
+          </div>
+          <div class="form-group">
+            <label for="edit-tx-amount">Amount ($)</label>
+            <input type="number" id="edit-tx-amount" min="1" step="1" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-tx-memo">Memo</label>
+            <input type="text" id="edit-tx-memo">
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="delete-tx-btn" class="btn btn-danger">Delete</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Recurring Modal -->
+    <div id="recurring-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="recurring-modal-title">Add Recurring Transaction</h3>
+          <button class="modal-close" id="recurring-modal-close">&times;</button>
+        </div>
+        <form id="recurring-form">
+          <input type="hidden" id="recurring-id">
+          <div class="form-group">
+            <label>Person</label>
+            <div class="person-toggle">
+              <button type="button" class="person-btn recurring-person-btn" data-person="James">James</button>
+              <button type="button" class="person-btn recurring-person-btn" data-person="Samantha">Samantha</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="recurring-category">Category</label>
+            <select id="recurring-category" required></select>
+          </div>
+          <div class="form-group">
+            <label for="recurring-vendor">Vendor</label>
+            <input type="text" id="recurring-vendor" required>
+          </div>
+          <div class="form-group">
+            <label for="recurring-amount">Amount ($)</label>
+            <input type="number" id="recurring-amount" min="1" step="1" required>
+          </div>
+          <div class="form-group">
+            <label for="recurring-frequency">Frequency</label>
+            <select id="recurring-frequency" required>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Every 2 Weeks</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="recurring-start">Start Date</label>
+            <input type="date" id="recurring-start" required>
+          </div>
+          <div class="form-group">
+            <label for="recurring-memo">Memo</label>
+            <input type="text" id="recurring-memo">
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="delete-recurring-btn" class="btn btn-danger hidden">Delete</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/db.js"></script>
+  <script src="/js/sync.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker registered'))
+          .catch(err => console.log('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
