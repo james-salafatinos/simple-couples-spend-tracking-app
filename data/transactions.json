@@ -1,1 +1,72 @@
-[]
+[
+  {
+    "id": "4b34b546-d5c0-4e91-853b-ca2ad265f1d4",
+    "date": "2026-01-02",
+    "person": "Samantha",
+    "category": "Eating Out",
+    "categoryId": "cat-2",
+    "vendor": "Starbucks",
+    "amount": 20,
+    "memo": "",
+    "createdAt": "2026-01-02T23:19:47.223Z",
+    "updatedAt": "2026-01-02T23:19:56.513Z",
+    "updatedBy": "James",
+    "deletedAt": null
+  },
+  {
+    "id": "5348200d-21b9-4b1f-959f-dd45c13d92d9",
+    "date": "2026-01-02",
+    "person": "James",
+    "category": "Uber",
+    "categoryId": "cat-4",
+    "vendor": "",
+    "amount": 8,
+    "memo": "",
+    "createdAt": "2026-01-02T23:22:05.161Z",
+    "updatedAt": "2026-01-02T23:22:05.161Z",
+    "updatedBy": "James",
+    "deletedAt": null
+  },
+  {
+    "id": "8cabbd83-1b58-4f2d-b576-0b4b3e865f11",
+    "date": "2026-01-02",
+    "person": "James",
+    "category": "Eating Out",
+    "categoryId": "cat-2",
+    "vendor": "Crabbys",
+    "amount": 74,
+    "memo": "",
+    "createdAt": "2026-01-02T23:22:29.819Z",
+    "updatedAt": "2026-01-02T23:22:29.819Z",
+    "updatedBy": "James",
+    "deletedAt": null
+  },
+  {
+    "id": "3a533c3f-5afb-40a1-a4d0-dd336c502e04",
+    "date": "2026-01-02",
+    "person": "James",
+    "category": "Uber",
+    "categoryId": "cat-4",
+    "vendor": "",
+    "amount": 46,
+    "memo": "",
+    "createdAt": "2026-01-02T23:22:38.502Z",
+    "updatedAt": "2026-01-02T23:22:38.502Z",
+    "updatedBy": "James",
+    "deletedAt": null
+  },
+  {
+    "id": "3acd23a3-05cc-4814-8413-75425e99f80a",
+    "date": "2026-01-02",
+    "person": "James",
+    "category": "Entertainment",
+    "categoryId": "cat-5",
+    "vendor": "United Airlines",
+    "amount": 8,
+    "memo": "wifi",
+    "createdAt": "2026-01-02T23:22:58.024Z",
+    "updatedAt": "2026-01-02T23:43:14.615Z",
+    "updatedBy": "Samantha",
+    "deletedAt": null
+  }
+]

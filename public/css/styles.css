@@ -1,7 +1,7 @@
 /* CSS Variables */
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
+  --primary: #095797;
+  --primary-dark: #05005b;
   --primary-light: #818cf8;
   --secondary: #64748b;
   --success: #22c55e;
@@ -180,7 +180,7 @@ body {
 .app-header {
   background: var(--primary);
   color: white;
-  padding: 16px 20px;
+  padding: 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -399,7 +399,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .category-tag {

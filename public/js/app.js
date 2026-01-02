@@ -120,14 +120,14 @@ class SpendTrackApp {
       btn.addEventListener('click', () => this.selectPerson(btn.dataset.person));
     });
     
-    // New category button
-    document.getElementById('add-category-btn').addEventListener('click', () => this.addNewCategory());
-    document.getElementById('new-category-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        this.addNewCategory();
-      }
-    });
+    // // New category button
+    // document.getElementById('add-category-btn').addEventListener('click', () => this.addNewCategory());
+    // document.getElementById('new-category-input').addEventListener('keypress', (e) => {
+    //   if (e.key === 'Enter') {
+    //     e.preventDefault();
+    //     this.addNewCategory();
+    //   }
+    // });
     
     // Undo button
     document.getElementById('undo-btn').addEventListener('click', () => this.undoLastAdd());
