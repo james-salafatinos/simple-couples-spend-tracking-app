@@ -140,6 +140,15 @@ Visit `http://localhost:3000` in your browser.
 - Automatic background sync when online
 - Manual "Sync Now" button available
 
+### Sync Feedback & Visibility
+
+The sync button now provides detailed user feedback:
+- **Sync Modal**: Shows progress spinner during sync, then displays detailed statistics (transactions/categories added/updated/conflicted)
+- **Toast Notifications**: Brief summary messages appear after sync completes (e.g., "5 transactions added, 2 categories updated")
+- **Timestamp Display**: Last sync time shown as "Just now", "5m ago", etc.
+- **Error Handling**: Specific error messages displayed if sync fails
+- **Status Indicator**: Dot in header shows sync state (green=synced, yellow=syncing, red=offline)
+
 ## Deployment (DigitalOcean App Platform)
 
 1. Push code to your Git repository

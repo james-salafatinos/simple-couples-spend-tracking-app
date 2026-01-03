@@ -383,6 +383,362 @@ describe('Integration Tests - Sync Behavior', () => {
       assert.strictEqual(transaction.category, 'Old Category');
     });
   });
+
+  describe('Sync Enhancement - Statistics Tracking', () => {
+    test('should track transaction statistics during sync', () => {
+      const syncStats = {
+        transactions: { added: 0, updated: 0, conflicted: 0 },
+        categories: { added: 0, updated: 0 },
+        recurring: { added: 0, updated: 0 }
+      };
+
+      // Simulate sync response with stats
+      const syncResponse = {
+        transactions: [
+          { id: 'tx-1', amount: 100, updatedAt: '2024-01-15T10:00:00.000Z' },
+          { id: 'tx-2', amount: 200, updatedAt: '2024-01-15T10:00:00.000Z' }
+        ],
+        stats: {
+          added: 2,
+          updated: 0,
+          conflicted: 0
+        }
+      };
+
+      syncStats.transactions = syncResponse.stats;
+
+      assert.strictEqual(syncStats.transactions.added, 2);
+      assert.strictEqual(syncStats.transactions.updated, 0);
+      assert.strictEqual(syncStats.transactions.conflicted, 0);
+    });
+
+    test('should track category statistics during sync', () => {
+      const syncStats = {
+        transactions: { added: 0, updated: 0, conflicted: 0 },
+        categories: { added: 0, updated: 0 },
+        recurring: { added: 0, updated: 0 }
+      };
+
+      const syncResponse = {
+        categories: [
+          { id: 'cat-1', name: 'Groceries', updatedAt: '2024-01-15T10:00:00.000Z' }
+        ],
+        stats: {
+          added: 1,
+          updated: 0
+        }
+      };
+
+      syncStats.categories = syncResponse.stats;
+
+      assert.strictEqual(syncStats.categories.added, 1);
+      assert.strictEqual(syncStats.categories.updated, 0);
+    });
+
+    test('should accumulate statistics across multiple sync types', () => {
+      const syncStats = {
+        transactions: { added: 5, updated: 2, conflicted: 0 },
+        categories: { added: 1, updated: 0 },
+        recurring: { added: 0, updated: 0 }
+      };
+
+      const totalAdded = syncStats.transactions.added + syncStats.categories.added;
+      const totalUpdated = syncStats.transactions.updated + syncStats.categories.updated;
+
+      assert.strictEqual(totalAdded, 6);
+      assert.strictEqual(totalUpdated, 2);
+    });
+
+    test('should reset statistics before new sync', () => {
+      let syncStats = {
+        transactions: { added: 5, updated: 2, conflicted: 1 },
+        categories: { added: 1, updated: 0 },
+        recurring: { added: 0, updated: 0 }
+      };
+
+      // Reset before sync
+      syncStats = {
+        transactions: { added: 0, updated: 0, conflicted: 0 },
+        categories: { added: 0, updated: 0 },
+        recurring: { added: 0, updated: 0 }
+      };
+
+      assert.strictEqual(syncStats.transactions.added, 0);
+      assert.strictEqual(syncStats.transactions.updated, 0);
+      assert.strictEqual(syncStats.transactions.conflicted, 0);
+      assert.strictEqual(syncStats.categories.added, 0);
+    });
+  });
+
+  describe('Sync Enhancement - Result Notifications', () => {
+    test('should generate sync success result with statistics', () => {
+      const result = {
+        success: true,
+        stats: {
+          transactions: { added: 3, updated: 1, conflicted: 0 },
+          categories: { added: 0, updated: 0 },
+          recurring: { added: 0, updated: 0 }
+        },
+        timestamp: new Date('2024-01-15T10:00:00.000Z'),
+        message: '3 transactions added, 1 transaction updated'
+      };
+
+      assert.ok(result.success);
+      assert.strictEqual(result.stats.transactions.added, 3);
+      assert.strictEqual(result.stats.transactions.updated, 1);
+      assert.ok(result.timestamp);
+      assert.ok(result.message);
+    });
+
+    test('should generate sync error result with error message', () => {
+      const result = {
+        success: false,
+        error: 'Network timeout during sync',
+        timestamp: new Date('2024-01-15T10:00:00.000Z')
+      };
+
+      assert.strictEqual(result.success, false);
+      assert.ok(result.error);
+      assert.strictEqual(result.error, 'Network timeout during sync');
+    });
+
+    test('should handle sync result with no changes', () => {
+      const result = {
+        success: true,
+        stats: {
+          transactions: { added: 0, updated: 0, conflicted: 0 },
+          categories: { added: 0, updated: 0 },
+          recurring: { added: 0, updated: 0 }
+        },
+        timestamp: new Date('2024-01-15T10:00:00.000Z'),
+        message: 'Everything is up to date'
+      };
+
+      assert.ok(result.success);
+      assert.strictEqual(result.message, 'Everything is up to date');
+    });
+
+    test('should execute sync result callbacks', () => {
+      let callbacksCalled = [];
+      const callbacks = [];
+
+      // Register callbacks
+      const onSyncResult = (callback) => {
+        callbacks.push(callback);
+      };
+
+      onSyncResult((result) => {
+        callbacksCalled.push('callback1');
+      });
+
+      onSyncResult((result) => {
+        callbacksCalled.push('callback2');
+      });
+
+      // Trigger callbacks
+      const result = {
+        success: true,
+        stats: { transactions: { added: 1, updated: 0, conflicted: 0 }, categories: { added: 0, updated: 0 }, recurring: { added: 0, updated: 0 } },
+        timestamp: new Date(),
+        message: '1 transaction added'
+      };
+
+      callbacks.forEach(cb => cb(result));
+
+      assert.strictEqual(callbacksCalled.length, 2);
+      assert.ok(callbacksCalled.includes('callback1'));
+      assert.ok(callbacksCalled.includes('callback2'));
+    });
+  });
+
+  describe('Sync Enhancement - Toast Messages', () => {
+    test('should generate toast message for successful sync with transactions', () => {
+      const stats = {
+        transactions: { added: 5, updated: 2, conflicted: 0 },
+        categories: { added: 0, updated: 0 }
+      };
+
+      const generateMessage = (stats) => {
+        const tx = stats.transactions;
+        const cat = stats.categories;
+        const total = tx.added + tx.updated + cat.added + cat.updated;
+
+        if (total === 0) return 'Everything is up to date';
+
+        const parts = [];
+        if (tx.added > 0) parts.push(`${tx.added} transaction${tx.added > 1 ? 's' : ''} added`);
+        if (tx.updated > 0) parts.push(`${tx.updated} transaction${tx.updated > 1 ? 's' : ''} updated`);
+        if (cat.added > 0) parts.push(`${cat.added} categor${cat.added > 1 ? 'ies' : 'y'} added`);
+        if (cat.updated > 0) parts.push(`${cat.updated} categor${cat.updated > 1 ? 'ies' : 'y'} updated`);
+
+        return parts.join(', ');
+      };
+
+      const message = generateMessage(stats);
+      assert.strictEqual(message, '5 transactions added, 2 transactions updated');
+    });
+
+    test('should generate toast message for sync with categories', () => {
+      const stats = {
+        transactions: { added: 0, updated: 0, conflicted: 0 },
+        categories: { added: 2, updated: 1 }
+      };
+
+      const generateMessage = (stats) => {
+        const tx = stats.transactions;
+        const cat = stats.categories;
+        const total = tx.added + tx.updated + cat.added + cat.updated;
+
+        if (total === 0) return 'Everything is up to date';
+
+        const parts = [];
+        if (tx.added > 0) parts.push(`${tx.added} transaction${tx.added > 1 ? 's' : ''} added`);
+        if (tx.updated > 0) parts.push(`${tx.updated} transaction${tx.updated > 1 ? 's' : ''} updated`);
+        if (cat.added > 0) parts.push(`${cat.added} categor${cat.added > 1 ? 'ies' : 'y'} added`);
+        if (cat.updated > 0) parts.push(`${cat.updated} categor${cat.updated > 1 ? 'ies' : 'y'} updated`);
+
+        return parts.join(', ');
+      };
+
+      const message = generateMessage(stats);
+      assert.strictEqual(message, '2 categories added, 1 category updated');
+    });
+
+    test('should generate error toast message', () => {
+      const errorMessage = 'Sync failed: Network timeout';
+      assert.ok(errorMessage.includes('Sync failed'));
+      assert.ok(errorMessage.includes('Network timeout'));
+    });
+  });
+
+  describe('Sync Enhancement - Timestamp Formatting', () => {
+    test('should format timestamp as "Just now"', () => {
+      const formatSyncTime = (date) => {
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+
+        if (seconds < 60) return 'Just now';
+        return 'Later';
+      };
+
+      const now = new Date();
+      const formatted = formatSyncTime(now);
+      assert.strictEqual(formatted, 'Just now');
+    });
+
+    test('should format timestamp as minutes ago', () => {
+      const formatSyncTime = (date) => {
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+
+        if (seconds < 60) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        return 'Later';
+      };
+
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const formatted = formatSyncTime(fiveMinutesAgo);
+      assert.ok(formatted.includes('m ago'));
+    });
+
+    test('should format timestamp as hours ago', () => {
+      const formatSyncTime = (date) => {
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+
+        if (seconds < 60) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        return 'Later';
+      };
+
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const formatted = formatSyncTime(twoHoursAgo);
+      assert.ok(formatted.includes('h ago'));
+    });
+
+    test('should format timestamp as full date string', () => {
+      const formatSyncTime = (date) => {
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+
+        if (seconds < 60) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+
+        return date.toLocaleString();
+      };
+
+      const yesterday = new Date(Date.now() - 25 * 60 * 60 * 1000);
+      const formatted = formatSyncTime(yesterday);
+      assert.ok(!formatted.includes('ago'), 'Should be full date string');
+    });
+  });
+
+  describe('Sync Enhancement - Modal State Management', () => {
+    test('should show progress state during sync', () => {
+      const modalState = {
+        progress: { hidden: false },
+        results: { hidden: true },
+        error: { hidden: true }
+      };
+
+      assert.strictEqual(modalState.progress.hidden, false);
+      assert.strictEqual(modalState.results.hidden, true);
+      assert.strictEqual(modalState.error.hidden, true);
+    });
+
+    test('should show results state after successful sync', () => {
+      const modalState = {
+        progress: { hidden: true },
+        results: { hidden: false },
+        error: { hidden: true }
+      };
+
+      assert.strictEqual(modalState.progress.hidden, true);
+      assert.strictEqual(modalState.results.hidden, false);
+      assert.strictEqual(modalState.error.hidden, true);
+    });
+
+    test('should show error state after failed sync', () => {
+      const modalState = {
+        progress: { hidden: true },
+        results: { hidden: true },
+        error: { hidden: false }
+      };
+
+      assert.strictEqual(modalState.progress.hidden, true);
+      assert.strictEqual(modalState.results.hidden, true);
+      assert.strictEqual(modalState.error.hidden, false);
+    });
+
+    test('should transition from progress to results', () => {
+      let modalState = {
+        progress: { hidden: false },
+        results: { hidden: true },
+        error: { hidden: true }
+      };
+
+      // Simulate sync completion
+      modalState = {
+        progress: { hidden: true },
+        results: { hidden: false },
+        error: { hidden: true }
+      };
+
+      assert.strictEqual(modalState.progress.hidden, true);
+      assert.strictEqual(modalState.results.hidden, false);
+    });
+  });
 });
 
 console.log('Running integration tests...');

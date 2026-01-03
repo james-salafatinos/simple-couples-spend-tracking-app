@@ -301,6 +301,28 @@ app.delete('/api/recurring/:id', authMiddleware, (req, res) => {
   }
 });
 
+// Backup directory setup
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+// Helper function to create backup
+function createBackup() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupData = {
+    transactions: readJSON(TRANSACTIONS_FILE),
+    categories: readJSON(CATEGORIES_FILE),
+    settings: readJSON(SETTINGS_FILE),
+    recurring: readJSON(RECURRING_FILE),
+    backedUpAt: new Date().toISOString()
+  };
+  
+  const backupFile = path.join(BACKUP_DIR, `backup-${timestamp}.json`);
+  writeJSON(backupFile, backupData);
+  return backupFile;
+}
+
 // Export routes
 app.get('/api/export/json', authMiddleware, (req, res) => {
   const data = {
@@ -334,6 +356,72 @@ app.get('/api/export/csv', authMiddleware, (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename=spending-${new Date().toISOString().split('T')[0]}.csv`);
   res.send(csv);
+});
+
+// Import/Restore route
+app.post('/api/import/json', authMiddleware, express.json({ limit: '50mb' }), (req, res) => {
+  try {
+    const importData = req.body;
+    
+    // Validate import data structure
+    if (!importData || typeof importData !== 'object') {
+      return res.status(400).json({ error: 'Invalid import data format' });
+    }
+    
+    const { transactions, categories, settings, recurring } = importData;
+    
+    // Validate required fields
+    if (!Array.isArray(transactions) || !Array.isArray(categories) || !Array.isArray(recurring)) {
+      return res.status(400).json({ error: 'Missing required data arrays (transactions, categories, recurring)' });
+    }
+    
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ error: 'Missing or invalid settings object' });
+    }
+    
+    // Validate transaction structure
+    for (const tx of transactions) {
+      if (!tx.id || !tx.date || !tx.person || !tx.category || tx.amount === undefined) {
+        return res.status(400).json({ error: 'Invalid transaction structure: missing required fields' });
+      }
+    }
+    
+    // Validate category structure
+    for (const cat of categories) {
+      if (!cat.id || !cat.name) {
+        return res.status(400).json({ error: 'Invalid category structure: missing required fields' });
+      }
+    }
+    
+    // Validate recurring structure
+    for (const rec of recurring) {
+      if (!rec.id || !rec.person || !rec.category || !rec.vendor || rec.amount === undefined) {
+        return res.status(400).json({ error: 'Invalid recurring transaction structure: missing required fields' });
+      }
+    }
+    
+    // Create backup of current data before import
+    createBackup();
+    
+    // Write imported data to files
+    writeJSON(TRANSACTIONS_FILE, transactions);
+    writeJSON(CATEGORIES_FILE, categories);
+    writeJSON(SETTINGS_FILE, settings);
+    writeJSON(RECURRING_FILE, recurring);
+    
+    res.json({
+      success: true,
+      message: 'Data imported successfully',
+      imported: {
+        transactions: transactions.length,
+        categories: categories.length,
+        recurring: recurring.length
+      }
+    });
+  } catch (error) {
+    console.error('Import error:', error);
+    res.status(500).json({ error: 'Failed to import data: ' + error.message });
+  }
 });
 
 // Merge function for last-write-wins sync
@@ -372,7 +460,7 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Couples Spend App running on http://localhost:${PORT}`);
+  console.log(`Couples Spend App running on http://0.0.0.0:${PORT}`);
 });
 
 module.exports = { app, mergeRecords };

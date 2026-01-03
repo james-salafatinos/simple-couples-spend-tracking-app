@@ -63,6 +63,7 @@ class SpendTrackApp {
     
     // Setup sync status listener
     syncService.onStatusChange((status) => this.updateSyncStatus(status));
+    syncService.onSyncResult((result) => this.handleSyncResult(result));
     this.updateSyncStatus(syncService.getStatus());
     
     // Initial sync
@@ -110,7 +111,17 @@ class SpendTrackApp {
     });
     
     // Sync button
-    document.getElementById('sync-btn').addEventListener('click', () => syncService.sync());
+    document.getElementById('sync-btn').addEventListener('click', () => {
+      this.showSyncModal();
+      syncService.sync();
+    });
+    
+    // Sync modal close
+    document.getElementById('sync-modal-close').addEventListener('click', () => this.closeSyncModal());
+    document.getElementById('sync-modal-close-btn').addEventListener('click', () => this.closeSyncModal());
+    document.getElementById('sync-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'sync-modal') this.closeSyncModal();
+    });
     
     // Add transaction form
     document.getElementById('add-form').addEventListener('submit', (e) => this.handleAddTransaction(e));
@@ -166,6 +177,16 @@ class SpendTrackApp {
     // Settings - export
     document.getElementById('export-json-btn').addEventListener('click', () => this.exportJSON());
     document.getElementById('export-csv-btn').addEventListener('click', () => this.exportCSV());
+    
+    // Settings - import
+    document.getElementById('import-json-btn').addEventListener('click', () => this.showImportModal());
+    document.getElementById('import-file-input').addEventListener('change', (e) => this.handleImportFileSelect(e));
+    document.getElementById('import-modal-close').addEventListener('click', () => this.closeImportModal());
+    document.getElementById('import-cancel-btn').addEventListener('click', () => this.closeImportModal());
+    document.getElementById('import-confirm-btn').addEventListener('click', () => this.handleImportConfirm());
+    document.getElementById('import-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'import-modal') this.closeImportModal();
+    });
     
     // Settings - logout
     document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
@@ -277,6 +298,90 @@ class SpendTrackApp {
     statusEl.title = status === 'synced' ? 'Synced' : 
                      status === 'syncing' ? 'Syncing...' : 
                      'Offline';
+  }
+
+  showSyncModal() {
+    const modal = document.getElementById('sync-modal');
+    const progress = document.getElementById('sync-progress');
+    const results = document.getElementById('sync-results');
+    const error = document.getElementById('sync-error');
+    
+    progress.classList.remove('hidden');
+    results.classList.add('hidden');
+    error.classList.add('hidden');
+    
+    modal.classList.remove('hidden');
+  }
+
+  closeSyncModal() {
+    document.getElementById('sync-modal').classList.add('hidden');
+  }
+
+  handleSyncResult(result) {
+    const modal = document.getElementById('sync-modal');
+    const progress = document.getElementById('sync-progress');
+    const results = document.getElementById('sync-results');
+    const error = document.getElementById('sync-error');
+    
+    progress.classList.add('hidden');
+    
+    if (result.success) {
+      results.classList.remove('hidden');
+      error.classList.add('hidden');
+      
+      document.getElementById('sync-tx-added').textContent = result.stats.transactions.added;
+      document.getElementById('sync-tx-updated').textContent = result.stats.transactions.updated;
+      document.getElementById('sync-tx-conflicted').textContent = result.stats.transactions.conflicted;
+      document.getElementById('sync-cat-added').textContent = result.stats.categories.added;
+      document.getElementById('sync-cat-updated').textContent = result.stats.categories.updated;
+      document.getElementById('sync-timestamp').textContent = this.formatSyncTime(result.timestamp);
+      
+      this.showToast(result.message, 'success');
+    } else {
+      results.classList.add('hidden');
+      error.classList.remove('hidden');
+      document.getElementById('sync-error-message').textContent = `Sync failed: ${result.error}`;
+      
+      this.showToast(`Sync failed: ${result.error}`, 'error');
+    }
+  }
+
+  formatSyncTime(date) {
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (seconds < 60) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    
+    return date.toLocaleString();
+  }
+
+  showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+      success: '✓',
+      error: '✕',
+      info: 'ℹ'
+    };
+    
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type]}</span>
+      <span class="toast-message">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
   }
 
   // Person selection
@@ -1056,6 +1161,184 @@ class SpendTrackApp {
 
   exportCSV() {
     window.location.href = '/api/export/csv';
+  }
+
+  // Import
+  showImportModal() {
+    const modal = document.getElementById('import-modal');
+    const fileInput = document.getElementById('import-file-input');
+    const preview = document.getElementById('import-preview');
+    const error = document.getElementById('import-error');
+    const success = document.getElementById('import-success');
+    const confirmBtn = document.getElementById('import-confirm-btn');
+    
+    fileInput.value = '';
+    preview.classList.add('hidden');
+    error.classList.add('hidden');
+    success.classList.add('hidden');
+    confirmBtn.disabled = true;
+    
+    modal.classList.remove('hidden');
+  }
+
+  closeImportModal() {
+    document.getElementById('import-modal').classList.add('hidden');
+    document.getElementById('import-file-input').value = '';
+    document.getElementById('import-preview').classList.add('hidden');
+    document.getElementById('import-error').classList.add('hidden');
+    document.getElementById('import-success').classList.add('hidden');
+    document.getElementById('import-confirm-btn').disabled = true;
+  }
+
+  handleImportFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importData = JSON.parse(event.target.result);
+        this.validateAndPreviewImport(importData);
+      } catch (error) {
+        this.showImportError('Invalid JSON file: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  validateAndPreviewImport(importData) {
+    const error = document.getElementById('import-error');
+    const preview = document.getElementById('import-preview');
+    const confirmBtn = document.getElementById('import-confirm-btn');
+    
+    error.classList.add('hidden');
+    
+    // Validate structure
+    if (!importData || typeof importData !== 'object') {
+      this.showImportError('Invalid import data format');
+      return;
+    }
+    
+    const { transactions, categories, settings, recurring } = importData;
+    
+    if (!Array.isArray(transactions) || !Array.isArray(categories) || !Array.isArray(recurring)) {
+      this.showImportError('Missing required data arrays');
+      return;
+    }
+    
+    if (!settings || typeof settings !== 'object') {
+      this.showImportError('Missing or invalid settings');
+      return;
+    }
+    
+    // Validate transaction structure
+    for (const tx of transactions) {
+      if (!tx.id || !tx.date || !tx.person || !tx.category || tx.amount === undefined) {
+        this.showImportError('Invalid transaction structure');
+        return;
+      }
+    }
+    
+    // Validate category structure
+    for (const cat of categories) {
+      if (!cat.id || !cat.name) {
+        this.showImportError('Invalid category structure');
+        return;
+      }
+    }
+    
+    // Validate recurring structure
+    for (const rec of recurring) {
+      if (!rec.id || !rec.person || !rec.category || !rec.vendor || rec.amount === undefined) {
+        this.showImportError('Invalid recurring transaction structure');
+        return;
+      }
+    }
+    
+    // Store validated data for import
+    this.pendingImportData = importData;
+    
+    // Show preview
+    document.getElementById('preview-tx-count').textContent = transactions.length;
+    document.getElementById('preview-cat-count').textContent = categories.length;
+    document.getElementById('preview-rec-count').textContent = recurring.length;
+    
+    preview.classList.remove('hidden');
+    confirmBtn.disabled = false;
+  }
+
+  showImportError(message) {
+    const error = document.getElementById('import-error');
+    const preview = document.getElementById('import-preview');
+    const confirmBtn = document.getElementById('import-confirm-btn');
+    
+    error.textContent = message;
+    error.classList.remove('hidden');
+    preview.classList.add('hidden');
+    confirmBtn.disabled = true;
+  }
+
+  async handleImportConfirm() {
+    if (!this.pendingImportData) return;
+    
+    const confirmBtn = document.getElementById('import-confirm-btn');
+    const error = document.getElementById('import-error');
+    const success = document.getElementById('import-success');
+    
+    confirmBtn.disabled = true;
+    error.classList.add('hidden');
+    success.classList.add('hidden');
+    
+    try {
+      const response = await fetch('/api/import/json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.pendingImportData),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Import failed');
+      }
+      
+      const result = await response.json();
+      
+      // Update local data
+      this.transactions = this.pendingImportData.transactions;
+      this.categories = this.pendingImportData.categories;
+      this.recurring = this.pendingImportData.recurring;
+      this.settings = this.pendingImportData.settings;
+      
+      // Save to local DB
+      for (const tx of this.transactions) {
+        await db.saveTransaction(tx);
+      }
+      for (const cat of this.categories) {
+        await db.saveCategory(cat);
+      }
+      for (const rec of this.recurring) {
+        await db.saveRecurring(rec);
+      }
+      for (const [key, value] of Object.entries(this.settings)) {
+        await db.setSetting(key, value);
+      }
+      
+      success.classList.remove('hidden');
+      this.pendingImportData = null;
+      
+      // Reload UI after 1.5 seconds
+      setTimeout(() => {
+        this.closeImportModal();
+        this.switchView('add');
+        this.renderCategories();
+        syncService.sync();
+      }, 1500);
+      
+    } catch (error) {
+      this.showImportError('Import failed: ' + error.message);
+      confirmBtn.disabled = false;
+    }
   }
 }
 

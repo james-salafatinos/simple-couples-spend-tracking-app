@@ -5,6 +5,13 @@ class SyncService {
     this.isOnline = navigator.onLine;
     this.isSyncing = false;
     this.syncCallbacks = [];
+    this.syncResultCallbacks = [];
+    this.lastSyncTime = null;
+    this.syncStats = {
+      transactions: { added: 0, updated: 0, conflicted: 0 },
+      categories: { added: 0, updated: 0 },
+      recurring: { added: 0, updated: 0 }
+    };
     
     // Listen for online/offline events
     window.addEventListener('online', () => {
@@ -23,9 +30,17 @@ class SyncService {
     this.syncCallbacks.push(callback);
   }
 
+  onSyncResult(callback) {
+    this.syncResultCallbacks.push(callback);
+  }
+
   notifyStatusChange() {
     const status = this.getStatus();
     this.syncCallbacks.forEach(cb => cb(status));
+  }
+
+  notifySyncResult(result) {
+    this.syncResultCallbacks.forEach(cb => cb(result));
   }
 
   getStatus() {
@@ -39,6 +54,7 @@ class SyncService {
     
     this.isSyncing = true;
     this.notifyStatusChange();
+    this.resetStats();
     
     try {
       // Sync transactions
@@ -53,13 +69,51 @@ class SyncService {
       // Clear sync queue after successful sync
       await this.db.clearSyncQueue();
       
-      console.log('Sync completed successfully');
+      this.lastSyncTime = new Date();
+      const result = {
+        success: true,
+        stats: this.syncStats,
+        timestamp: this.lastSyncTime,
+        message: this.generateSyncMessage()
+      };
+      this.notifySyncResult(result);
+      console.log('Sync completed successfully', result);
     } catch (error) {
       console.error('Sync failed:', error);
+      const result = {
+        success: false,
+        error: error.message,
+        timestamp: new Date()
+      };
+      this.notifySyncResult(result);
     } finally {
       this.isSyncing = false;
       this.notifyStatusChange();
     }
+  }
+
+  resetStats() {
+    this.syncStats = {
+      transactions: { added: 0, updated: 0, conflicted: 0 },
+      categories: { added: 0, updated: 0 },
+      recurring: { added: 0, updated: 0 }
+    };
+  }
+
+  generateSyncMessage() {
+    const tx = this.syncStats.transactions;
+    const cat = this.syncStats.categories;
+    const total = tx.added + tx.updated + cat.added + cat.updated;
+    
+    if (total === 0) return 'Cool';
+    
+    const parts = [];
+    if (tx.added > 0) parts.push(`${tx.added} transaction${tx.added > 1 ? 's' : ''} added`);
+    if (tx.updated > 0) parts.push(`${tx.updated} transaction${tx.updated > 1 ? 's' : ''} updated`);
+    if (cat.added > 0) parts.push(`${cat.added} categor${cat.added > 1 ? 'ies' : 'y'} added`);
+    if (cat.updated > 0) parts.push(`${cat.updated} categor${cat.updated > 1 ? 'ies' : 'y'} updated`);
+    
+    return parts.join(', ');
   }
 
   async syncTransactions() {
@@ -74,10 +128,13 @@ class SyncService {
       });
       
       if (response.ok) {
-        const serverTransactions = await response.json();
+        const data = await response.json();
+        const serverTransactions = Array.isArray(data) ? data : data.transactions || [];
+        const stats = data.stats || { added: 0, updated: 0, conflicted: 0 };
+        
+        this.syncStats.transactions = stats;
         await this.db.mergeTransactions(serverTransactions);
       } else if (response.status === 401) {
-        // Not authenticated, redirect to login
         window.location.reload();
       }
     } catch (error) {
@@ -98,7 +155,11 @@ class SyncService {
       });
       
       if (response.ok) {
-        const serverCategories = await response.json();
+        const data = await response.json();
+        const serverCategories = Array.isArray(data) ? data : data.categories || [];
+        const stats = data.stats || { added: 0, updated: 0 };
+        
+        this.syncStats.categories = stats;
         await this.db.mergeCategories(serverCategories);
       }
     } catch (error) {
@@ -119,7 +180,11 @@ class SyncService {
       });
       
       if (response.ok) {
-        const serverRecurring = await response.json();
+        const data = await response.json();
+        const serverRecurring = Array.isArray(data) ? data : data.recurring || [];
+        const stats = data.stats || { added: 0, updated: 0 };
+        
+        this.syncStats.recurring = stats;
         await this.db.mergeRecurring(serverRecurring);
       }
     } catch (error) {

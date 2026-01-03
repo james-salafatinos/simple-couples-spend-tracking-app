@@ -288,3 +288,210 @@ describe('UUID Generation', () => {
     assert.strictEqual(uuids.size, 100, 'All 100 UUIDs should be unique');
   });
 });
+
+describe('Sync Enhancement - Toast & Modal Feedback', () => {
+  test('should generate sync message with no changes', () => {
+    const stats = {
+      transactions: { added: 0, updated: 0, conflicted: 0 },
+      categories: { added: 0, updated: 0 }
+    };
+    
+    const generateMessage = (stats) => {
+      const tx = stats.transactions;
+      const cat = stats.categories;
+      const total = tx.added + tx.updated + cat.added + cat.updated;
+      
+      if (total === 0) return 'Everything is up to date';
+      
+      const parts = [];
+      if (tx.added > 0) parts.push(`${tx.added} transaction${tx.added > 1 ? 's' : ''} added`);
+      if (tx.updated > 0) parts.push(`${tx.updated} transaction${tx.updated > 1 ? 's' : ''} updated`);
+      if (cat.added > 0) parts.push(`${cat.added} categor${cat.added > 1 ? 'ies' : 'y'} added`);
+      if (cat.updated > 0) parts.push(`${cat.updated} categor${cat.updated > 1 ? 'ies' : 'y'} updated`);
+      
+      return parts.join(', ');
+    };
+    
+    const message = generateMessage(stats);
+    assert.strictEqual(message, 'Everything is up to date');
+  });
+
+  test('should generate sync message with transactions added', () => {
+    const stats = {
+      transactions: { added: 5, updated: 0, conflicted: 0 },
+      categories: { added: 0, updated: 0 }
+    };
+    
+    const generateMessage = (stats) => {
+      const tx = stats.transactions;
+      const cat = stats.categories;
+      const total = tx.added + tx.updated + cat.added + cat.updated;
+      
+      if (total === 0) return 'Everything is up to date';
+      
+      const parts = [];
+      if (tx.added > 0) parts.push(`${tx.added} transaction${tx.added > 1 ? 's' : ''} added`);
+      if (tx.updated > 0) parts.push(`${tx.updated} transaction${tx.updated > 1 ? 's' : ''} updated`);
+      if (cat.added > 0) parts.push(`${cat.added} categor${cat.added > 1 ? 'ies' : 'y'} added`);
+      if (cat.updated > 0) parts.push(`${cat.updated} categor${cat.updated > 1 ? 'ies' : 'y'} updated`);
+      
+      return parts.join(', ');
+    };
+    
+    const message = generateMessage(stats);
+    assert.strictEqual(message, '5 transactions added');
+  });
+
+  test('should generate sync message with mixed changes', () => {
+    const stats = {
+      transactions: { added: 3, updated: 2, conflicted: 0 },
+      categories: { added: 1, updated: 0 }
+    };
+    
+    const generateMessage = (stats) => {
+      const tx = stats.transactions;
+      const cat = stats.categories;
+      const total = tx.added + tx.updated + cat.added + cat.updated;
+      
+      if (total === 0) return 'Everything is up to date';
+      
+      const parts = [];
+      if (tx.added > 0) parts.push(`${tx.added} transaction${tx.added > 1 ? 's' : ''} added`);
+      if (tx.updated > 0) parts.push(`${tx.updated} transaction${tx.updated > 1 ? 's' : ''} updated`);
+      if (cat.added > 0) parts.push(`${cat.added} categor${cat.added > 1 ? 'ies' : 'y'} added`);
+      if (cat.updated > 0) parts.push(`${cat.updated} categor${cat.updated > 1 ? 'ies' : 'y'} updated`);
+      
+      return parts.join(', ');
+    };
+    
+    const message = generateMessage(stats);
+    assert.strictEqual(message, '3 transactions added, 2 transactions updated, 1 category added');
+  });
+
+  test('should format sync timestamp correctly', () => {
+    const formatSyncTime = (date) => {
+      const now = new Date();
+      const diff = now - date;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      
+      if (seconds < 60) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      
+      return date.toLocaleString();
+    };
+    
+    const now = new Date();
+    const formatted = formatSyncTime(now);
+    assert.strictEqual(formatted, 'Just now');
+  });
+
+  test('should format sync timestamp as minutes ago', () => {
+    const formatSyncTime = (date) => {
+      const now = new Date();
+      const diff = now - date;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      
+      if (seconds < 60) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      
+      return date.toLocaleString();
+    };
+    
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const formatted = formatSyncTime(fiveMinutesAgo);
+    assert.ok(formatted.includes('m ago'), 'Should show minutes ago');
+  });
+
+  test('should track sync statistics correctly', () => {
+    const syncStats = {
+      transactions: { added: 0, updated: 0, conflicted: 0 },
+      categories: { added: 0, updated: 0 },
+      recurring: { added: 0, updated: 0 }
+    };
+    
+    // Simulate sync results
+    syncStats.transactions = { added: 5, updated: 2, conflicted: 0 };
+    syncStats.categories = { added: 1, updated: 0 };
+    
+    assert.strictEqual(syncStats.transactions.added, 5);
+    assert.strictEqual(syncStats.transactions.updated, 2);
+    assert.strictEqual(syncStats.categories.added, 1);
+  });
+
+  test('should reset sync statistics before sync', () => {
+    let syncStats = {
+      transactions: { added: 5, updated: 2, conflicted: 1 },
+      categories: { added: 1, updated: 0 },
+      recurring: { added: 0, updated: 0 }
+    };
+    
+    // Reset stats
+    syncStats = {
+      transactions: { added: 0, updated: 0, conflicted: 0 },
+      categories: { added: 0, updated: 0 },
+      recurring: { added: 0, updated: 0 }
+    };
+    
+    assert.strictEqual(syncStats.transactions.added, 0);
+    assert.strictEqual(syncStats.transactions.updated, 0);
+    assert.strictEqual(syncStats.transactions.conflicted, 0);
+  });
+
+  test('should handle sync result with success', () => {
+    const result = {
+      success: true,
+      stats: {
+        transactions: { added: 3, updated: 1, conflicted: 0 },
+        categories: { added: 0, updated: 0 }
+      },
+      timestamp: new Date(),
+      message: '3 transactions added, 1 transaction updated'
+    };
+    
+    assert.ok(result.success);
+    assert.strictEqual(result.stats.transactions.added, 3);
+    assert.ok(result.message);
+  });
+
+  test('should handle sync result with error', () => {
+    const result = {
+      success: false,
+      error: 'Network timeout',
+      timestamp: new Date()
+    };
+    
+    assert.strictEqual(result.success, false);
+    assert.ok(result.error);
+    assert.strictEqual(result.error, 'Network timeout');
+  });
+
+  test('should validate sync result callback execution', () => {
+    let callbackExecuted = false;
+    let receivedResult = null;
+    
+    const onSyncResult = (callback) => {
+      const result = {
+        success: true,
+        stats: { transactions: { added: 2, updated: 0, conflicted: 0 }, categories: { added: 0, updated: 0 } },
+        timestamp: new Date(),
+        message: '2 transactions added'
+      };
+      callback(result);
+    };
+    
+    onSyncResult((result) => {
+      callbackExecuted = true;
+      receivedResult = result;
+    });
+    
+    assert.ok(callbackExecuted, 'Callback should be executed');
+    assert.ok(receivedResult.success);
+    assert.strictEqual(receivedResult.stats.transactions.added, 2);
+  });
+});

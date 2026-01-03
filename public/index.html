@@ -18,7 +18,7 @@
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
       <div class="login-container">
-        <h1>💰 SpendTrack</h1>
+        <h1>💸SpendTrack</h1>
         <p>James & Samantha's Spending Tracker</p>
         <form id="login-form">
           <input type="password" id="password-input" placeholder="Enter password" autocomplete="current-password" required>
@@ -33,7 +33,7 @@
       <!-- Header -->
       <header class="app-header">
         <div class="header-left">
-          <h1>SpendTrack</h1>
+          <h1>💸SpendTrack</h1>
         </div>
         <div class="header-right">
           <span id="sync-status" class="sync-status" title="Sync status">●</span>
@@ -228,6 +228,12 @@
             </div>
             
             <div class="settings-section">
+              <h3>Import Data</h3>
+              <p class="settings-help-text">Upload a previously exported JSON backup file to restore your data.</p>
+              <button type="button" id="import-json-btn" class="btn btn-secondary">Import JSON</button>
+            </div>
+            
+            <div class="settings-section">
               <button type="button" id="logout-btn" class="btn btn-danger">Logout</button>
             </div>
           </div>
@@ -331,6 +337,108 @@
         </form>
       </div>
     </div>
+
+    <!-- Import Modal -->
+    <div id="import-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Import JSON Backup</h3>
+          <button class="modal-close" id="import-modal-close">&times;</button>
+        </div>
+        <div class="import-modal-body">
+          <p class="import-warning">⚠️ Importing will replace all current data. Your existing data will be automatically backed up.</p>
+          <div class="file-input-wrapper">
+            <input type="file" id="import-file-input" accept=".json" required>
+            <label for="import-file-input" class="file-input-label">Choose JSON file...</label>
+          </div>
+          <div id="import-preview" class="import-preview hidden">
+            <h4>Preview</h4>
+            <div class="preview-items">
+              <div class="preview-item">
+                <span>Transactions:</span>
+                <span id="preview-tx-count">0</span>
+              </div>
+              <div class="preview-item">
+                <span>Categories:</span>
+                <span id="preview-cat-count">0</span>
+              </div>
+              <div class="preview-item">
+                <span>Recurring:</span>
+                <span id="preview-rec-count">0</span>
+              </div>
+            </div>
+          </div>
+          <div id="import-error" class="import-error hidden"></div>
+          <div id="import-success" class="import-success hidden">
+            <p>✓ Data imported successfully!</p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="import-cancel-btn" class="btn btn-secondary">Cancel</button>
+            <button type="button" id="import-confirm-btn" class="btn btn-primary" disabled>Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync Summary Modal -->
+    <div id="sync-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Sync Summary</h3>
+          <button class="modal-close" id="sync-modal-close">&times;</button>
+        </div>
+        <div class="sync-modal-body">
+          <div id="sync-progress" class="sync-progress hidden">
+            <div class="progress-spinner"></div>
+            <p>Syncing...</p>
+          </div>
+          <div id="sync-results" class="sync-results hidden">
+            <div class="sync-result-section">
+              <h4>Transactions</h4>
+              <div class="sync-stat">
+                <span>Added:</span>
+                <span id="sync-tx-added" class="sync-stat-value">0</span>
+              </div>
+              <div class="sync-stat">
+                <span>Updated:</span>
+                <span id="sync-tx-updated" class="sync-stat-value">0</span>
+              </div>
+              <div class="sync-stat">
+                <span>Conflicted:</span>
+                <span id="sync-tx-conflicted" class="sync-stat-value">0</span>
+              </div>
+            </div>
+            <div class="sync-result-section">
+              <h4>Categories</h4>
+              <div class="sync-stat">
+                <span>Added:</span>
+                <span id="sync-cat-added" class="sync-stat-value">0</span>
+              </div>
+              <div class="sync-stat">
+                <span>Updated:</span>
+                <span id="sync-cat-updated" class="sync-stat-value">0</span>
+              </div>
+            </div>
+            <div class="sync-result-section">
+              <h4>Last Sync</h4>
+              <div class="sync-stat">
+                <span>Timestamp:</span>
+                <span id="sync-timestamp" class="sync-stat-value">-</span>
+              </div>
+            </div>
+          </div>
+          <div id="sync-error" class="sync-error hidden">
+            <p id="sync-error-message"></p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="sync-modal-close-btn" class="btn btn-primary">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
   </div>
 
   <script src="/js/db.js"></script>
