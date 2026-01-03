@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const PASSWORD = process.env.PASSWORD || 'changeme';
+const PASSWORD = process.env.PASSWORD;
 
 // Middleware
 app.use(express.json());
