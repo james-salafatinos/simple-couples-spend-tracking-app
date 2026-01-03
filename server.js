@@ -371,11 +371,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Only start server if this file is run directly
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Couples Spend App running on http://localhost:${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Couples Spend App running on http://localhost:${PORT}`);
+});
 
 module.exports = { app, mergeRecords };

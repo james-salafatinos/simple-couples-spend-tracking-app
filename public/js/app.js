@@ -132,8 +132,10 @@ class SpendTrackApp {
     // Undo button
     document.getElementById('undo-btn').addEventListener('click', () => this.undoLastAdd());
     
-    // Filters
-    document.getElementById('filter-person').addEventListener('change', () => this.renderTransactionsList());
+    // Filters - person toggle buttons
+    document.querySelectorAll('.filter-person-btn').forEach(btn => {
+      btn.addEventListener('click', () => this.setTransactionPersonFilter(btn.dataset.filter));
+    });
     document.getElementById('filter-category').addEventListener('change', () => this.renderTransactionsList());
     document.getElementById('filter-date-from').addEventListener('change', () => this.renderTransactionsList());
     document.getElementById('filter-date-to').addEventListener('change', () => this.renderTransactionsList());
@@ -443,12 +445,20 @@ class SpendTrackApp {
     });
   }
 
+  setTransactionPersonFilter(filter) {
+    this.transactionPersonFilter = filter;
+    document.querySelectorAll('.filter-person-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    this.renderTransactionsList();
+  }
+
   renderTransactionsList() {
     const container = document.getElementById('transactions-list');
     const totalEl = document.getElementById('transactions-total');
     
     // Get filter values
-    const personFilter = document.getElementById('filter-person').value;
+    const personFilter = this.transactionPersonFilter || 'all';
     const categoryFilter = document.getElementById('filter-category').value;
     const dateFrom = document.getElementById('filter-date-from').value;
     const dateTo = document.getElementById('filter-date-to').value;

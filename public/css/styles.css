@@ -469,6 +469,31 @@ body {
   box-shadow: var(--shadow);
 }
 
+.filter-person-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-person-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.filter-person-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
 .filter-row {
   display: flex;
   gap: 8px;
